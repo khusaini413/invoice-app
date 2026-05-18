@@ -79,8 +79,7 @@ export default function LoginPage() {
           </button>
         </form>
         <div className="mt-6 text-center text-sm text-gray-600">
-          <p>Data Demo:</p>
-          <p>Kode: STR001 | Username: admin | Password: password123</p>
+          <p>© 2026 Aplikasi Faktur</p>
         </div>
       </div>
     </div>
