@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
-export default function InvoiceForm({ type }: { type: 'normal' | 'konsinyasi' }) {
+export default function InvoiceForm({ type }: { type: 'normal' | 'consignment' }) {
   const { user } = useAuth()
   const [suppliers, setSuppliers] = useState<any[]>([])
   const [formData, setFormData] = useState({
@@ -48,7 +48,7 @@ export default function InvoiceForm({ type }: { type: 'normal' | 'konsinyasi' })
       })
 
     if (error) {
-      toast.error('Gagal menyimpan Faktur')
+      toast.error('Gagal menyimpan faktur')
       console.error(error)
     } else {
       toast.success('Faktur berhasil disimpan')
@@ -65,7 +65,7 @@ export default function InvoiceForm({ type }: { type: 'normal' | 'konsinyasi' })
 
   return (
     <div className="bg-white rounded-lg shadow p-6 mb-8">
-      <h2 className="text-xl font-semibold mb-4">Buat Faktur {type}</h2>
+      <h2 className="text-xl font-semibold mb-4">Buat Faktur {type === 'normal' ? 'Normal' : 'Konsinyasi'}</h2>
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -93,7 +93,7 @@ export default function InvoiceForm({ type }: { type: 'normal' | 'konsinyasi' })
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Supplier
+            Pemasok
           </label>
           <select
             value={formData.supplier_id}
@@ -101,7 +101,7 @@ export default function InvoiceForm({ type }: { type: 'normal' | 'konsinyasi' })
             className="w-full px-3 py-2 border rounded-lg"
             required
           >
-            <option value="">Pilih Supplier</option>
+            <option value="">Pilih Pemasok</option>
             {suppliers.map(s => (
               <option key={s.id} value={s.id}>{s.supplier_name}</option>
             ))}
@@ -121,7 +121,7 @@ export default function InvoiceForm({ type }: { type: 'normal' | 'konsinyasi' })
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Jumlah
+            Jumlah (Rp)
           </label>
           <input
             type="number"

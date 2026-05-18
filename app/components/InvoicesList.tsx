@@ -8,7 +8,7 @@ import autoTable from 'jspdf-autotable'
 import { Download, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-export default function InvoicesList({ type, userRole }: { type: string, userRole: string }) {
+export default function InvoicesList({ type, userRole }: { type: 'normal' | 'consignment', userRole: string }) {
   const { user } = useAuth()
   const [invoices, setInvoices] = useState<any[]>([])
   const [suppliers, setSuppliers] = useState<any[]>([])
@@ -115,29 +115,29 @@ export default function InvoicesList({ type, userRole }: { type: string, userRol
 
   const exportToExcel = () => {
     const exportData = invoices.map((inv: any) => ({
-      'Invoice Number': inv.invoice_number,
-      'Invoice Date': inv.invoice_date,
-      'Supplier': inv.suppliers?.supplier_name,
-      'Due Date': inv.due_date,
-      'Amount': inv.amount,
-      'Status': inv.status === 'lunas' ? 'Paid' : 'Unpaid',
-      'Payment Date': inv.payment_date || '-',
-      'Input By': inv.users?.full_name,
+      'Nomor Faktur': inv.invoice_number,
+      'Tanggal Faktur': inv.invoice_date,
+      'Pemasok': inv.suppliers?.supplier_name,
+      'Jatuh Tempo': inv.due_date,
+      'Jumlah': inv.amount,
+      'Status': inv.status === 'lunas' ? 'Lunas' : 'Belum Bayar',
+      'Tanggal Bayar': inv.payment_date || '-',
+      'Diinput Oleh': inv.users?.full_name,
       ...(type === 'consignment' && {
-        'Actual Paid': inv.actual_paid || '-',
-        'Difference': inv.difference || '-'
+        'Dibayar': inv.actual_paid || '-',
+        'Selisih': inv.difference || '-'
       })
     }))
     
     const ws = XLSX.utils.json_to_sheet(exportData)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Invoices')
-    XLSX.writeFile(wb, `invoices_${type}_${new Date().toISOString()}.xlsx`)
+    XLSX.utils.book_append_sheet(wb, ws, 'Faktur')
+    XLSX.writeFile(wb, `faktur_${type}_${new Date().toISOString()}.xlsx`)
   }
 
   const exportToPDF = () => {
     const doc = new jsPDF()
-    doc.text(`Invoices Report - ${type.toUpperCase()}`, 14, 15)
+    doc.text(`Laporan Faktur - ${type === 'normal' ? 'Normal' : 'Konsinyasi'}`, 14, 15)
     
     const tableData = invoices.map((inv: any) => [
       inv.invoice_number,
@@ -145,14 +145,14 @@ export default function InvoicesList({ type, userRole }: { type: string, userRol
       inv.suppliers?.supplier_name,
       inv.due_date,
       `Rp ${inv.amount?.toLocaleString()}`,
-      inv.status === 'lunas' ? 'Paid' : 'Unpaid',
+      inv.status === 'lunas' ? 'Lunas' : 'Belum Bayar',
       inv.payment_date || '-',
       ...(type === 'consignment' ? [`Rp ${(inv.actual_paid || 0).toLocaleString()}`, `Rp ${(inv.difference || 0).toLocaleString()}`] : [])
     ])
     
-    const columns = ['Invoice No', 'Date', 'Supplier', 'Due Date', 'Amount', 'Status', 'Payment Date']
+    const columns = ['No. Faktur', 'Tanggal', 'Pemasok', 'Jatuh Tempo', 'Jumlah', 'Status', 'Tanggal Bayar']
     if (type === 'consignment') {
-      columns.push('Actual Paid', 'Difference')
+      columns.push('Dibayar', 'Selisih')
     }
     
     autoTable(doc, {
@@ -161,7 +161,7 @@ export default function InvoicesList({ type, userRole }: { type: string, userRol
       startY: 20
     })
     
-    doc.save(`invoices_${type}_${new Date().toISOString()}.pdf`)
+    doc.save(`faktur_${type}_${new Date().toISOString()}.pdf`)
   }
 
   return (
@@ -172,7 +172,7 @@ export default function InvoicesList({ type, userRole }: { type: string, userRol
           onChange={(e) => setFilter({...filter, supplier_id: e.target.value})}
           className="px-3 py-2 border rounded-lg"
         >
-          <option value="">Semua Suppliers</option>
+          <option value="">Semua Pemasok</option>
           {suppliers.map(s => (
             <option key={s.id} value={s.id}>{s.supplier_name}</option>
           ))}
@@ -235,26 +235,26 @@ export default function InvoicesList({ type, userRole }: { type: string, userRol
       </div>
 
       {loading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-8">Memuat...</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No Invoice</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. Faktur</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Supplier</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pemasok</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jatuh Tempo</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Input Oleh</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Diinput Oleh</th>
                 {type === 'consignment' && (
                   <>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aktual dibayar</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dibayar</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Selisih</th>
                   </>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tandahi Lunas</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -269,7 +269,7 @@ export default function InvoicesList({ type, userRole }: { type: string, userRol
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       invoice.status === 'lunas' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {invoice.status === 'lunas' ? 'Paid' : 'Unpaid'}
+                      {invoice.status === 'lunas' ? 'Lunas' : 'Belum Bayar'}
                     </span>
                   </td>
                   <td className="px-6 py-4">{invoice.users?.full_name}</td>
@@ -284,7 +284,7 @@ export default function InvoicesList({ type, userRole }: { type: string, userRol
                       <button
                         onClick={() => handlePayment(invoice)}
                         className="text-green-600 hover:text-green-800"
-                        title="Mark as paid"
+                        title="Tandai Lunas"
                       >
                         <CheckCircle className="w-5 h-5" />
                       </button>
@@ -292,11 +292,15 @@ export default function InvoicesList({ type, userRole }: { type: string, userRol
                   </td>
                 </tr>
               ))}
+              {invoices.length === 0 && (
+                <tr>
+                  <td colSpan={type === 'consignment' ? 10 : 8} className="text-center py-8 text-gray-500">
+                    Tidak ada faktur ditemukan
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
-          {invoices.length === 0 && (
-            <div className="text-center py-8 text-gray-500">Tidak ada faktur ditemukan</div>
-          )}
         </div>
       )}
     </div>
