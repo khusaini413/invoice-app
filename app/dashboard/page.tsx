@@ -24,7 +24,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Sidebar */}
       <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg">
         <div className="p-6">
           <h2 className="text-xl font-bold text-gray-800">Aplikasi Faktur</h2>
@@ -75,7 +74,6 @@ export default function Dashboard() {
         </nav>
       </div>
 
-      {/* Main content */}
       <div className="ml-64 p-8">
         {activeTab === 'invoices' && (
           <>
