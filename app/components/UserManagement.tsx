@@ -100,11 +100,13 @@ export default function UserManagement() {
   }
 
   const handleChangePassword = async (id: string) => {
-    if (!newPassword || newPassword.length < 4) {
-      toast.error('Password minimal 4 karakter')
-      return
-    }
+  if (!newPassword || newPassword.length < 4) {
+    toast.error('Password minimal 4 karakter')
+    return
+  }
 
+  try {
+    // Import bcrypt di awal file sudah ada
     const salt = bcrypt.genSaltSync(10)
     const passwordHash = bcrypt.hashSync(newPassword, salt)
 
@@ -114,14 +116,19 @@ export default function UserManagement() {
       .eq('id', id)
 
     if (error) {
-      toast.error('Gagal mengubah password')
+      console.error('Update error:', error)
+      toast.error('Gagal mengubah password: ' + error.message)
     } else {
       toast.success('Password berhasil diubah')
       setChangingPasswordId(null)
       setNewPassword('')
       fetchUsers()
     }
+  } catch (err) {
+    console.error('Hash error:', err)
+    toast.error('Terjadi kesalahan saat hashing password')
   }
+}
 
   const handleDelete = async (id: string) => {
     if (id === user?.id) {
