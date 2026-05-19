@@ -106,29 +106,33 @@ export default function UserManagement() {
   }
 
   try {
-    // Hashing dilakukan di sini, tidak perlu manual
+    // Hash password dengan bcrypt
     const salt = bcrypt.genSaltSync(10)
     const passwordHash = bcrypt.hashSync(newPassword, salt)
 
+    console.log('User ID:', id)
     console.log('Password baru:', newPassword)
-    console.log('Hash yang tersimpan:', passwordHash)
+    console.log('Hash yang akan disimpan:', passwordHash)
 
-    const { error } = await supabase
+    // Update password di database
+    const { error, data } = await supabase
       .from('users')
       .update({ password_hash: passwordHash })
       .eq('id', id)
+      .select()
 
     if (error) {
-      console.error('Update error:', error)
+      console.error('Supabase error:', error)
       toast.error('Gagal mengubah password: ' + error.message)
     } else {
+      console.log('Update berhasil:', data)
       toast.success('Password berhasil diubah')
       setChangingPasswordId(null)
       setNewPassword('')
       fetchUsers()
     }
   } catch (err) {
-    console.error('Hashing error:', err)
+    console.error('Error:', err)
     toast.error('Terjadi kesalahan saat memproses password')
   }
 }
