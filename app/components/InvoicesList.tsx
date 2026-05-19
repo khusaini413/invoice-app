@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { Download, CheckCircle, Edit, Trash2 } from 'lucide-react'
+import { Download, CheckCircle, Edit, Trash2, Undo2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function InvoicesList({ type, userRole }: { type: 'normal' | 'consignment', userRole: string }) {
@@ -108,6 +108,7 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
     setLoading(false)
   }
 
+  // Tandai Lunas
   const handlePayment = async (invoice: any) => {
     if (userRole !== 'finance' && userRole !== 'admin') {
       toast.error('Hanya staff finance dan admin yang bisa melakukan pelunasan')
@@ -149,6 +150,52 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
           toast.success('Pembayaran berhasil')
           fetchInvoices()
         }
+      }
+    }
+  }
+
+  // Batalkan Lunas
+  const handleCancelPayment = async (invoice: any) => {
+    if (userRole !== 'finance' && userRole !== 'admin') {
+      toast.error('Hanya staff finance dan admin yang bisa membatalkan pelunasan')
+      return
+    }
+
+    if (!confirm(`Batalkan pelunasan faktur ${invoice.invoice_number}? Status akan kembali ke "Belum Bayar".`)) {
+      return
+    }
+
+    if (type === 'normal') {
+      const { error } = await supabase
+        .from(table)
+        .update({ 
+          status: 'belum bayar', 
+          payment_date: null 
+        })
+        .eq('id', invoice.id)
+
+      if (error) {
+        toast.error('Gagal membatalkan pelunasan')
+      } else {
+        toast.success('Pelunasan dibatalkan, faktur kembali ke "Belum Bayar"')
+        fetchInvoices()
+      }
+    } else {
+      const { error } = await supabase
+        .from(table)
+        .update({ 
+          status: 'belum bayar', 
+          payment_date: null,
+          actual_paid: null,
+          difference: null
+        })
+        .eq('id', invoice.id)
+
+      if (error) {
+        toast.error('Gagal membatalkan pelunasan')
+      } else {
+        toast.success('Pelunasan dibatalkan, faktur kembali ke "Belum Bayar"')
+        fetchInvoices()
       }
     }
   }
@@ -460,6 +507,7 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
                         )}
                         <td className="px-6 py-4">
                           <div className="flex space-x-2">
+                            {/* Tombol Tandai Lunas (untuk faktur belum bayar) */}
                             {invoice.status === 'belum bayar' && (userRole === 'finance' || userRole === 'admin') && (
                               <button
                                 onClick={() => handlePayment(invoice)}
@@ -469,26 +517,41 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
                                 <CheckCircle className="w-5 h-5" />
                               </button>
                             )}
+                            
+                            {/* Tombol Batalkan Lunas (untuk faktur sudah lunas) */}
+                            {invoice.status === 'lunas' && (userRole === 'finance' || userRole === 'admin') && (
+                              <button
+                                onClick={() => handleCancelPayment(invoice)}
+                                className="text-orange-600 hover:text-orange-800"
+                                title="Batalkan Lunas"
+                              >
+                                <Undo2 className="w-5 h-5" />
+                              </button>
+                            )}
+                            
+                            {/* Tombol Edit (hanya untuk faktur belum bayar) */}
                             {invoice.status === 'belum bayar' && (userRole === 'kasir' || userRole === 'admin') && (
-                              <>
-                                <button
-                                  onClick={() => startEdit(invoice)}
-                                  className="text-blue-600 hover:text-blue-800"
-                                  title="Edit"
-                                >
-                                  <Edit className="w-5 h-5" />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(invoice.id, invoice.status)}
-                                  className="text-red-600 hover:text-red-800"
-                                  title="Hapus"
-                                >
-                                  <Trash2 className="w-5 h-5" />
-                                </button>
-                              </>
+                              <button
+                                onClick={() => startEdit(invoice)}
+                                className="text-blue-600 hover:text-blue-800"
+                                title="Edit"
+                              >
+                                <Edit className="w-5 h-5" />
+                              </button>
+                            )}
+                            
+                            {/* Tombol Hapus (hanya untuk faktur belum bayar) */}
+                            {invoice.status === 'belum bayar' && (userRole === 'kasir' || userRole === 'admin') && (
+                              <button
+                                onClick={() => handleDelete(invoice.id, invoice.status)}
+                                className="text-red-600 hover:text-red-800"
+                                title="Hapus"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
                             )}
                           </div>
-                         </td>
+                        </td>
                       </>
                     )}
                   </tr>
