@@ -6,6 +6,7 @@ import InvoicesList from '../components/InvoicesList'
 import InvoiceForm from '../components/InvoiceForm'
 import SupplierManagement from '../components/SupplierManagement'
 import UserManagement from '../components/UserManagement'
+import DashboardStats from '../components/DashboardStats'
 import { FileText, Truck, Users, LogOut } from 'lucide-react'
 
 export default function Dashboard() {
@@ -24,6 +25,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Sidebar */}
       <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg">
         <div className="p-6">
           <h2 className="text-xl font-bold text-gray-800">Aplikasi Faktur</h2>
@@ -74,7 +76,12 @@ export default function Dashboard() {
         </nav>
       </div>
 
+      {/* Main content */}
       <div className="ml-64 p-8">
+        {/* Dashboard Statistics */}
+        <DashboardStats />
+
+        {/* Tabs */}
         {activeTab === 'invoices' && (
           <>
             <div className="mb-6 flex space-x-4">

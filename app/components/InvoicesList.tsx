@@ -50,7 +50,6 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
   const fetchInvoices = async () => {
     setLoading(true)
     
-    // Hitung total untuk pagination
     let countQuery = supabase
       .from(table)
       .select('*', { count: 'exact', head: true })
@@ -76,7 +75,6 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
       setTotalPages(Math.ceil(count / ITEMS_PER_PAGE))
     }
 
-    // Ambil data dengan pagination
     let query = supabase
       .from(table)
       .select(`
@@ -110,7 +108,6 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
     setLoading(false)
   }
 
-  // Handle Payment (untuk Finance & Admin)
   const handlePayment = async (invoice: any) => {
     if (userRole !== 'finance' && userRole !== 'admin') {
       toast.error('Hanya staff finance dan admin yang bisa melakukan pelunasan')
@@ -156,7 +153,6 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
     }
   }
 
-  // Handle Edit (untuk Kasir & Admin, hanya faktur belum lunas)
   const startEdit = (invoice: any) => {
     if (invoice.status === 'lunas') {
       toast.error('Faktur yang sudah lunas tidak bisa diedit')
@@ -197,7 +193,6 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
     }
   }
 
-  // Handle Delete (untuk Kasir & Admin, hanya faktur belum lunas)
   const handleDelete = async (id: string, status: string) => {
     if (status === 'lunas') {
       toast.error('Faktur yang sudah lunas tidak bisa dihapus')
@@ -231,7 +226,11 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
       'Jumlah': inv.amount,
       'Status': inv.status === 'lunas' ? 'Lunas' : 'Belum Bayar',
       'Tanggal Bayar': inv.payment_date || '-',
-      'Diinput Oleh': inv.users?.full_name
+      'Diinput Oleh': inv.users?.full_name,
+      ...(type === 'consignment' && {
+        'Dibayar (Actual Paid)': inv.actual_paid ? `Rp ${inv.actual_paid.toLocaleString()}` : '-',
+        'Selisih': inv.difference ? `Rp ${inv.difference.toLocaleString()}` : '-'
+      })
     }))
     
     const ws = XLSX.utils.json_to_sheet(exportData)
@@ -251,10 +250,17 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
       inv.due_date,
       `Rp ${inv.amount?.toLocaleString()}`,
       inv.status === 'lunas' ? 'Lunas' : 'Belum Bayar',
-      inv.payment_date || '-'
+      inv.payment_date || '-',
+      ...(type === 'consignment' ? [
+        inv.actual_paid ? `Rp ${inv.actual_paid.toLocaleString()}` : '-',
+        inv.difference ? `Rp ${inv.difference.toLocaleString()}` : '-'
+      ] : [])
     ])
     
     const columns = ['No. Faktur', 'Tanggal', 'Pemasok', 'Jatuh Tempo', 'Jumlah', 'Status', 'Tanggal Bayar']
+    if (type === 'consignment') {
+      columns.push('Dibayar', 'Selisih')
+    }
     
     autoTable(doc, {
       head: [columns],
@@ -351,7 +357,14 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jatuh Tempo</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Bayar</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Diinput Oleh</th>
+                  {type === 'consignment' && (
+                    <>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dibayar</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Selisih</th>
+                    </>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                 </tr>
               </thead>
@@ -394,7 +407,14 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
                           />
                         </td>
                         <td className="px-6 py-4">{invoice.status === 'lunas' ? 'Lunas' : 'Belum Bayar'}</td>
+                        <td className="px-6 py-4">{invoice.payment_date || '-'}</td>
                         <td className="px-6 py-4">{invoice.users?.full_name}</td>
+                        {type === 'consignment' && (
+                          <>
+                            <td className="px-6 py-4">{invoice.actual_paid ? `Rp ${invoice.actual_paid.toLocaleString()}` : '-'}</td>
+                            <td className="px-6 py-4">{invoice.difference ? `Rp ${invoice.difference.toLocaleString()}` : '-'}</td>
+                          </>
+                        )}
                         <td className="px-6 py-4">
                           <div className="flex space-x-2">
                             <button
@@ -426,7 +446,18 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
                             {invoice.status === 'lunas' ? 'Lunas' : 'Belum Bayar'}
                           </span>
                         </td>
+                        <td className="px-6 py-4">{invoice.payment_date || '-'}</td>
                         <td className="px-6 py-4">{invoice.users?.full_name}</td>
+                        {type === 'consignment' && (
+                          <>
+                            <td className="px-6 py-4">
+                              {invoice.actual_paid ? `Rp ${invoice.actual_paid.toLocaleString()}` : '-'}
+                            </td>
+                            <td className="px-6 py-4">
+                              {invoice.difference ? `Rp ${invoice.difference.toLocaleString()}` : '-'}
+                            </td>
+                          </>
+                        )}
                         <td className="px-6 py-4">
                           <div className="flex space-x-2">
                             {invoice.status === 'belum bayar' && (userRole === 'finance' || userRole === 'admin') && (
@@ -457,14 +488,14 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
                               </>
                             )}
                           </div>
-                        </td>
+                         </td>
                       </>
                     )}
                   </tr>
                 ))}
                 {invoices.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center py-8 text-gray-500">
+                    <td colSpan={type === 'consignment' ? 11 : 9} className="text-center py-8 text-gray-500">
                       Tidak ada faktur ditemukan
                     </td>
                   </tr>
