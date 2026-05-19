@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
-import { Plus, Edit, Trash2, Save, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Save, X, Key } from 'lucide-react'
+import bcrypt from 'bcryptjs'
 
 export default function UserManagement() {
   const { user } = useAuth()
@@ -11,6 +12,8 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [changingPasswordId, setChangingPasswordId] = useState<string | null>(null)
+  const [newPassword, setNewPassword] = useState('')
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -42,7 +45,9 @@ export default function UserManagement() {
       return
     }
 
-    const passwordHash = `hashed_${formData.password}`
+    // Hash password dengan bcrypt
+    const salt = bcrypt.genSaltSync(10)
+    const passwordHash = bcrypt.hashSync(formData.password, salt)
 
     const { error } = await supabase
       .from('users')
@@ -76,7 +81,8 @@ export default function UserManagement() {
     }
 
     if (formData.password) {
-      updateData.password_hash = `hashed_${formData.password}`
+      const salt = bcrypt.genSaltSync(10)
+      updateData.password_hash = bcrypt.hashSync(formData.password, salt)
     }
 
     const { error } = await supabase
@@ -89,6 +95,30 @@ export default function UserManagement() {
     } else {
       toast.success('Pengguna berhasil diupdate')
       setEditingId(null)
+      fetchUsers()
+    }
+  }
+
+  const handleChangePassword = async (id: string) => {
+    if (!newPassword || newPassword.length < 4) {
+      toast.error('Password minimal 4 karakter')
+      return
+    }
+
+    const salt = bcrypt.genSaltSync(10)
+    const passwordHash = bcrypt.hashSync(newPassword, salt)
+
+    const { error } = await supabase
+      .from('users')
+      .update({ password_hash: passwordHash })
+      .eq('id', id)
+
+    if (error) {
+      toast.error('Gagal mengubah password')
+    } else {
+      toast.success('Password berhasil diubah')
+      setChangingPasswordId(null)
+      setNewPassword('')
       fetchUsers()
     }
   }
@@ -188,8 +218,8 @@ export default function UserManagement() {
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 className="w-full px-3 py-2 border rounded-lg"
+                placeholder="Minimal 4 karakter"
               />
-              <p className="text-xs text-gray-500 mt-1">Default: password123</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Peran *</label>
@@ -297,16 +327,57 @@ export default function UserManagement() {
                        </td>
                       <td className="px-6 py-4">
                         <div className="flex space-x-2">
+                          {/* Tombol Ganti Password */}
+                          {changingPasswordId === userData.id ? (
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="Password baru"
+                                className="px-2 py-1 border rounded w-32 text-sm"
+                              />
+                              <button
+                                onClick={() => handleChangePassword(userData.id)}
+                                className="text-green-600 hover:text-green-800"
+                                title="Simpan password"
+                              >
+                                <Save className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setChangingPasswordId(null)
+                                  setNewPassword('')
+                                }}
+                                className="text-gray-600 hover:text-gray-800"
+                                title="Batal"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setChangingPasswordId(userData.id)}
+                              className="text-yellow-600 hover:text-yellow-800"
+                              title="Ganti Password"
+                            >
+                              <Key className="w-4 h-4" />
+                            </button>
+                          )}
+                          
                           <button
                             onClick={() => startEdit(userData)}
                             className="text-blue-600 hover:text-blue-800"
+                            title="Edit"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
+                          
                           {userData.id !== user?.id && (
                             <button
                               onClick={() => handleDelete(userData.id)}
                               className="text-red-600 hover:text-red-800"
+                              title="Hapus"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
