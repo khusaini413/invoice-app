@@ -46,7 +46,7 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
         users(full_name)
       `)
       .eq('store_id', user?.store_id)
-      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
 
     if (filter.supplier_id) {
       query = query.eq('supplier_id', filter.supplier_id)
