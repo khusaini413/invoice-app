@@ -14,12 +14,15 @@ export default function Dashboard() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('invoices')
   const [invoiceType, setInvoiceType] = useState<'normal' | 'consignment'>('normal')
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     if (!user) {
       router.push('/')
     }
   }, [user, router])
+    const refreshInvoices = () => {
+    setRefreshKey(prev => prev + 1)
 
   if (!user) return null
 
@@ -107,9 +110,9 @@ export default function Dashboard() {
               </button>
             </div>
             {(user.role === 'kasir' || user.role === 'admin') && (
-              <InvoiceForm type={invoiceType} />
+              <InvoiceForm type={invoiceType} onSuccess={refreshInvoices}/>
             )}
-            <InvoicesList type={invoiceType} userRole={user.role} />
+            <InvoicesList key={refreshKey} type={invoiceType} userRole={user.role} />
           </>
         )}
         {activeTab === 'suppliers' && (

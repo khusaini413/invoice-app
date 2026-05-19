@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
-export default function InvoiceForm({ type }: { type: 'normal' | 'consignment' }) {
+export default function InvoiceForm({ type, onSuccess }: { type: 'normal' | 'consignment', onSuccess?: () => void }) {
   const { user } = useAuth()
   const [suppliers, setSuppliers] = useState<any[]>([])
   const [formData, setFormData] = useState({
@@ -60,6 +60,9 @@ export default function InvoiceForm({ type }: { type: 'normal' | 'consignment' }
         amount: '',
         notes: ''
       })
+      // Panggil fungsi refresh jika ada
+      if (onSuccess) {
+        onSuccess()
     }
   }
 
