@@ -106,9 +106,12 @@ export default function UserManagement() {
   }
 
   try {
-    // Import bcrypt di awal file sudah ada
+    // Hashing dilakukan di sini, tidak perlu manual
     const salt = bcrypt.genSaltSync(10)
     const passwordHash = bcrypt.hashSync(newPassword, salt)
+
+    console.log('Password baru:', newPassword)
+    console.log('Hash yang tersimpan:', passwordHash)
 
     const { error } = await supabase
       .from('users')
@@ -125,8 +128,8 @@ export default function UserManagement() {
       fetchUsers()
     }
   } catch (err) {
-    console.error('Hash error:', err)
-    toast.error('Terjadi kesalahan saat hashing password')
+    console.error('Hashing error:', err)
+    toast.error('Terjadi kesalahan saat memproses password')
   }
 }
 
