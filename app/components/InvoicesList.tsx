@@ -110,17 +110,41 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
 
   // Tandai Lunas
   const handlePayment = async (invoice: any) => {
-    if (userRole !== 'finance' && userRole !== 'admin') {
-      toast.error('Hanya staff finance dan admin yang bisa melakukan pelunasan')
-      return
-    }
+  if (userRole !== 'finance' && userRole !== 'admin') {
+    toast.error('Hanya staff finance dan admin yang bisa melakukan pelunasan')
+    return
+  }
 
-    if (type === 'normal') {
+  // Pop-up konfirmasi untuk Tandai Lunas
+  const confirmed = window.confirm(`Tandai faktur ${invoice.invoice_number} sebagai LUNAS?`)
+  if (!confirmed) return
+
+  if (type === 'normal') {
+    const { error } = await supabase
+      .from(table)
+      .update({ 
+        status: 'lunas', 
+        payment_date: new Date().toISOString().split('T')[0] 
+      })
+      .eq('id', invoice.id)
+
+    if (error) {
+      toast.error('Pembayaran gagal')
+    } else {
+      toast.success('Pembayaran berhasil')
+      fetchInvoices()
+    }
+  } else {
+    const actualPaid = prompt('Masukkan jumlah yang dibayar:', invoice.amount)
+    if (actualPaid) {
+      const difference = parseFloat(actualPaid) - invoice.amount
       const { error } = await supabase
         .from(table)
         .update({ 
           status: 'lunas', 
-          payment_date: new Date().toISOString().split('T')[0] 
+          payment_date: new Date().toISOString().split('T')[0],
+          actual_paid: parseFloat(actualPaid),
+          difference: difference
         })
         .eq('id', invoice.id)
 
@@ -130,75 +154,55 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
         toast.success('Pembayaran berhasil')
         fetchInvoices()
       }
-    } else {
-      const actualPaid = prompt('Masukkan jumlah yang dibayar:', invoice.amount)
-      if (actualPaid) {
-        const difference = parseFloat(actualPaid) - invoice.amount
-        const { error } = await supabase
-          .from(table)
-          .update({ 
-            status: 'lunas', 
-            payment_date: new Date().toISOString().split('T')[0],
-            actual_paid: parseFloat(actualPaid),
-            difference: difference
-          })
-          .eq('id', invoice.id)
-
-        if (error) {
-          toast.error('Pembayaran gagal')
-        } else {
-          toast.success('Pembayaran berhasil')
-          fetchInvoices()
-        }
-      }
     }
   }
+}
 
   // Batalkan Lunas
   const handleCancelPayment = async (invoice: any) => {
-    if (userRole !== 'finance' && userRole !== 'admin') {
-      toast.error('Hanya staff finance dan admin yang bisa membatalkan pelunasan')
-      return
-    }
+  if (userRole !== 'finance' && userRole !== 'admin') {
+    toast.error('Hanya staff finance dan admin yang bisa membatalkan pelunasan')
+    return
+  }
 
-    if (!confirm(`Batalkan pelunasan faktur ${invoice.invoice_number}? Status akan kembali ke "Belum Bayar".`)) {
-      return
-    }
+  // Pop-up konfirmasi untuk Batalkan Lunas
+  const confirmed = window.confirm(`Batalkan pelunasan faktur ${invoice.invoice_number}? Status akan kembali ke "Belum Bayar".`)
+  if (!confirmed) return
 
-    if (type === 'normal') {
-      const { error } = await supabase
-        .from(table)
-        .update({ 
-          status: 'belum bayar', 
-          payment_date: null 
-        })
-        .eq('id', invoice.id)
+  if (type === 'normal') {
+    const { error } = await supabase
+      .from(table)
+      .update({ 
+        status: 'belum bayar', 
+        payment_date: null 
+      })
+      .eq('id', invoice.id)
 
-      if (error) {
-        toast.error('Gagal membatalkan pelunasan')
-      } else {
-        toast.success('Pelunasan dibatalkan, faktur kembali ke "Belum Bayar"')
-        fetchInvoices()
-      }
+    if (error) {
+      toast.error('Gagal membatalkan pelunasan')
     } else {
-      const { error } = await supabase
-        .from(table)
-        .update({ 
-          status: 'belum bayar', 
-          payment_date: null,
-          actual_paid: null,
-          difference: null
-        })
-        .eq('id', invoice.id)
+      toast.success('Pelunasan dibatalkan, faktur kembali ke "Belum Bayar"')
+      fetchInvoices()
+    }
+  } else {
+    const { error } = await supabase
+      .from(table)
+      .update({ 
+        status: 'belum bayar', 
+        payment_date: null,
+        actual_paid: null,
+        difference: null
+      })
+      .eq('id', invoice.id)
 
-      if (error) {
-        toast.error('Gagal membatalkan pelunasan')
-      } else {
-        toast.success('Pelunasan dibatalkan, faktur kembali ke "Belum Bayar"')
-        fetchInvoices()
-      }
+    if (error) {
+      toast.error('Gagal membatalkan pelunasan')
+    } else {
+      toast.success('Pelunasan dibatalkan, faktur kembali ke "Belum Bayar"')
+      fetchInvoices()
     }
   }
+}
 
   const startEdit = (invoice: any) => {
     if (invoice.status === 'lunas') {
@@ -240,29 +244,32 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
     }
   }
 
-  const handleDelete = async (id: string, status: string) => {
-    if (status === 'lunas') {
-      toast.error('Faktur yang sudah lunas tidak bisa dihapus')
-      return
-    }
-    if (userRole !== 'kasir' && userRole !== 'admin') {
-      toast.error('Hanya kasir dan admin yang bisa menghapus faktur')
-      return
-    }
-    if (confirm('Apakah Anda yakin ingin menghapus faktur ini?')) {
-      const { error } = await supabase
-        .from(table)
-        .delete()
-        .eq('id', id)
-
-      if (error) {
-        toast.error('Gagal menghapus faktur')
-      } else {
-        toast.success('Faktur berhasil dihapus')
-        fetchInvoices()
-      }
-    }
+  const handleDelete = async (id: string, status: string, invoiceNumber: string) => {
+  if (status === 'lunas') {
+    toast.error('Faktur yang sudah lunas tidak bisa dihapus')
+    return
   }
+  if (userRole !== 'kasir' && userRole !== 'admin') {
+    toast.error('Hanya kasir dan admin yang bisa menghapus faktur')
+    return
+  }
+
+  // Pop-up konfirmasi untuk Hapus
+  const confirmed = window.confirm(`Hapus faktur ${invoiceNumber}? Data akan dihapus permanen dan tidak dapat dikembalikan.`)
+  if (!confirmed) return
+
+  const { error } = await supabase
+    .from(table)
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    toast.error('Gagal menghapus faktur')
+  } else {
+    toast.success('Faktur berhasil dihapus')
+    fetchInvoices()
+  }
+}
 
   const exportToExcel = () => {
     const exportData = invoices.map((inv: any) => ({
@@ -543,7 +550,7 @@ export default function InvoicesList({ type, userRole }: { type: 'normal' | 'con
                             {/* Tombol Hapus (hanya untuk faktur belum bayar) */}
                             {invoice.status === 'belum bayar' && (userRole === 'kasir' || userRole === 'admin') && (
                               <button
-                                onClick={() => handleDelete(invoice.id, invoice.status)}
+                                onClick={() => handleDelete(invoice.id, invoice.status, invoice.invoice_number)}
                                 className="text-red-600 hover:text-red-800"
                                 title="Hapus"
                               >
