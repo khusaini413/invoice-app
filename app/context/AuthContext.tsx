@@ -1,6 +1,7 @@
 'use client'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import bcrypt from 'bcryptjs'
 
 interface User {
   id: string
@@ -32,68 +33,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = async (storeCode: string, username: string, password: string) => {
-  try {
-    console.log('Mencari store dengan kode:', storeCode)
-    
-    const { data: store, error: storeError } = await supabase
-      .from('stores')
-      .select('id')
-      .eq('store_code', storeCode)
-      .maybeSingle()
-
-    if (storeError || !store) {
-      console.error('Store tidak ditemukan')
-      return false
-    }
-
-    console.log('Store ditemukan:', store)
-
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('store_id', store.id)
-      .eq('username', username)
-      .maybeSingle()
-
-    if (userError || !userData) {
-      console.error('User tidak ditemukan')
-      return false
-    }
-
-    console.log('User ditemukan:', userData.username)
-    console.log('Password hash di DB:', userData.password_hash)
-
-    // Verifikasi password dengan bcrypt
-    let isValidPassword = false
     try {
-      isValidPassword = bcrypt.compareSync(password, userData.password_hash)
-      console.log('Password match:', isValidPassword)
-    } catch (err) {
-      console.error('Bcrypt error:', err)
-    }
+      console.log('Mencari store dengan kode:', storeCode)
+      
+      const { data: store, error: storeError } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('store_code', storeCode)
+        .maybeSingle()
 
-    if (!isValidPassword) {
-      console.error('Password salah')
+      if (storeError || !store) {
+        console.error('Store tidak ditemukan')
+        return false
+      }
+
+      console.log('Store ditemukan:', store)
+
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('store_id', store.id)
+        .eq('username', username)
+        .maybeSingle()
+
+      if (userError || !userData) {
+        console.error('User tidak ditemukan')
+        return false
+      }
+
+      console.log('User ditemukan:', userData.username)
+      console.log('Password hash di DB:', userData.password_hash)
+
+      let isValidPassword = false
+      try {
+        isValidPassword = bcrypt.compareSync(password, userData.password_hash)
+        console.log('Password match:', isValidPassword)
+      } catch (err) {
+        console.error('Bcrypt error:', err)
+      }
+
+      if (!isValidPassword) {
+        console.error('Password salah')
+        return false
+      }
+
+      const loggedUser = {
+        id: userData.id,
+        username: userData.username,
+        role: userData.role,
+        store_id: userData.store_id,
+        full_name: userData.full_name
+      }
+      
+      setUser(loggedUser)
+      localStorage.setItem('user', JSON.stringify(loggedUser))
+      console.log('Login berhasil!')
+      return true
+    } catch (error) {
+      console.error('Login error:', error)
       return false
     }
-
-    const loggedUser = {
-      id: userData.id,
-      username: userData.username,
-      role: userData.role,
-      store_id: userData.store_id,
-      full_name: userData.full_name
-    }
-    
-    setUser(loggedUser)
-    localStorage.setItem('user', JSON.stringify(loggedUser))
-    console.log('Login berhasil!')
-    return true
-  } catch (error) {
-    console.error('Login error:', error)
-    return false
   }
-}
 
   const logout = () => {
     setUser(null)
