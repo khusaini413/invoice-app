@@ -60,9 +60,9 @@ export default function InvoiceForm({ type, onSuccess }: { type: 'normal' | 'con
         amount: '',
         notes: ''
       })
-      // Panggil fungsi refresh jika ada
       if (onSuccess) {
         onSuccess()
+      }
     }
   }
 
