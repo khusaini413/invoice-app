@@ -21,8 +21,10 @@ export default function Dashboard() {
       router.push('/')
     }
   }, [user, router])
-    const refreshInvoices = () => {
+
+  const refreshInvoices = () => {
     setRefreshKey(prev => prev + 1)
+  }
 
   if (!user) return null
 
@@ -81,10 +83,8 @@ export default function Dashboard() {
 
       {/* Main content */}
       <div className="ml-64 p-8">
-        {/* Dashboard Statistics */}
         <DashboardStats />
 
-        {/* Tabs */}
         {activeTab === 'invoices' && (
           <>
             <div className="mb-6 flex space-x-4">
@@ -110,7 +110,7 @@ export default function Dashboard() {
               </button>
             </div>
             {(user.role === 'kasir' || user.role === 'admin') && (
-              <InvoiceForm type={invoiceType} onSuccess={refreshInvoices}/>
+              <InvoiceForm type={invoiceType} onSuccess={refreshInvoices} />
             )}
             <InvoicesList key={refreshKey} type={invoiceType} userRole={user.role} />
           </>
