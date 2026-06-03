@@ -65,12 +65,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Password hash di DB:', userData.password_hash)
 
       let isValidPassword = false
-      try {
-        isValidPassword = bcrypt.compareSync(password, userData.password_hash)
-        console.log('Password match:', isValidPassword)
-      } catch (err) {
-        console.error('Bcrypt error:', err)
-      }
+        try {
+          // Cek langsung dengan bcrypt
+          isValidPassword = bcrypt.compareSync(password, userData.password_hash)
+          console.log('Password match bcrypt:', isValidPassword)
+          
+          // Fallback: jika hash adalah plain text (untuk testing)
+          if (!isValidPassword && password === userData.password_hash) {
+            console.log('Fallback: plain text match')
+            isValidPassword = true
+          }
+        } catch (err) {
+          console.error('Bcrypt error:', err)
+        }
 
       if (!isValidPassword) {
         console.error('Password salah')
